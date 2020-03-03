@@ -1,0 +1,155 @@
+# 16.04 pass, 18.04 pss
+
+   1. Realsense-viewer 번이 V2.28.1 이상 부터 d435I 인식 가능 
+
+
+sudo apt-get update
+sudo apt-key adv --keyserver keys.gnupg.net --recv-key C8B3A55A6F3EFCDE || sudo apt-key adv --keyserver hkp://keyserver.ubuntu.com:80 --recv-key C8B3A55A6F3EFCD
+sudo add-apt-repository "deb http://realsense-hw-public.s3.amazonaws.com/Debian/apt-repo bionic main" -u       #xenial-->bionic
+sudo apt-get install librealsense2-dkms           #tx2에서는 안깔림-안깔려도 뷰어 실행 가능 uvc관련 tx2는 따로 패치 해줘야함
+sudo apt-get install librealsense2-utils
+sudo apt-get install librealsense2-dev
+sudo apt-get install librealsense2-dbg
+realsense-viewer
+
+sudo sh -c 'echo "deb http://packages.ros.org/ros/ubuntu $(lsb_release -sc) main" > /etc/apt/sources.list.d/ros-latest.list'
+wget http://packages.ros.org/ros.key -O - | sudo apt-key add -
+sudo apt-get update
+sudo apt-get install python-catkin-tools
+sudo apt-key adv --keyserver hkp://ha.pool.sks-keyservers.net:80 --recv-key 421C365BD9FF1F717815A3895523BAEEB01FA116
+sudo apt-get update
+sudo apt-get install ros-kinetic-desktop -y                     sudo apt-get install ros-melodic-desktop -y
+sudo apt-get install ros-kinetic-rqt*                            sudo apt-get install ros-melodic-rqt*
+sudo apt-get install ros-kinetic-ddynamic-reconfigure -y     sudo apt-get install ros-melodic-ddynamic-reconfigure -y
+sudo rosdep init
+rosdep update
+echo "source /opt/ros/kinetic/setup.bash" >> ~/.bashrc     echo "source /opt/ros/melodic/setup.bash" >> ~/.bashrc
+source /opt/ros/kinetic/setup.bash                             source /opt/ros/melodic/setup.bash
+sudo apt-get install git
+sudo apt install python-rosinstall python-rosinstall-generator python-wstool build-essential 
+출처: <https://answers.ros.org/question/207433/catkin-build-gives-command-not-found/> 
+
+mkdir catkin_ws
+cd catkin_ws
+wstool init src
+[ #####wstool merge -t src https://raw.githubusercontent.com/ROBOTIS-JAPAN-GIT/turtlebot3_slam_3d/master/.rosinstall   #욜로v3 깔림 #구버전  ]
+git clone https://github.com/Affonso-Gui/darknet_ros.git --recursive  #yolo
+git clone https://github.com/IntelRealSense/realsense-ros.git   #realsense-ros
+wstool update -t src
+#cd src
+#sudo rm -rf buildLibrealsense2TX
+#cd ..
+rosdep install -y -r --from-paths src --ignore-src
+
+#catkin build turtlebot3_slam_3d
+
+cd turtlebot3_slam_3d 
+https://drive.google.com/a/robotis.com/uc?export=download&confirm=SLgY&id=1sfMhQV5ipJm0ghrvQ8HpOw2tTr179aiP
+cd catkin_ws
+echo "source ~/catkin_ws/devel/setup.bash" >> ~/.bashrc 
+source ~/.bashrc
+source devel/setup.bash
+export ROS_PACKAGE_PATH=$ROS_PACKAGE_PATH:$(pwd)/src
+cd catkin_ws/src
+rm -rf realsense
+git clone https://github.com/IntelRealSense/realsense-ros.git
+catkin build realsense2_camera
+
+----
+설치 완료시
+cd catkin_ws / src / darknet_ros/ darknet_ros/config
+
+파일에서 ros.yaml 파일을 열고 
+
+Camera_reading: 
+   topic : /camera/rgb/image_raw
+   queue_size : 1
+
+을 리얼센스 토픽으로 변경
+Camera_reading: 
+   topic : /camera/color/image_raw/image
+   queue_size : 1
+
+
+
+cd catkin_ws / src / darknet_ros/ darknet_ros/launch
+rosluanch yolo_v3.launch
+
+cd catkin_ws/src/realsense-ros/realsense2_camera/launch
+roslaunch rs_rgbd.launch 
+
+
+sudo nano ~/.bashrc #밑에 3줄 경로추가
+export PATH=/usr/local/cuda-10.2/bin:/usr/local/cuda-10.2/NsightCompute-2019.1${PATH:+:${PATH}}
+export LD_LIBRARY_PATH=/usr/local/cuda-10.2/lib64${LD_LIBRARY_PATH:+:${LD_LIBRARY_PATH}}
+export LD_LIBRARY_PATH=/usr/local/cuda-10.2/lib${LD_LIBRARY_PATH:+:${LD_LIBRARY_PATH}}
+
+source ~/.bashrc
+
+
+
+Opencv 에러 모음
+VIDEOIO ERROR: V4L2: Pixel format of incoming image is unsupported by OpenCV #160
+
+출처: <https://github.com/boltgolt/howdy/issues/160#> 
+v4l2-ctl -d /dev/video0 --list-formats
+
+해결 방법
+https://qiita.com/PINTO/items/73b341a3661367a0dc61
+
+https://www.intelrealsense.com/developers/
+Installing the packages:
+Add Intel server to the list of repositories :
+echo 'deb http://realsense-hw-public.s3.amazonaws.com/Debian/apt-repo xenial main' | sudo tee /etc/apt/sources.list.d/realsense-public.list
+It is recommended to backup /etc/apt/sources.list.d/realsense-public.list file in case of an upgrade.
+
+Register the server’s public key :
+sudo apt-key adv --keyserver keys.gnupg.net --recv-key 6F3EFCDE
+
+Refresh the list of repositories and packages available :
+sudo apt-get update
+
+In order to run demos install:
+sudo apt-get install librealsense2-dkms
+sudo apt-get install librealsense2-utils
+
+The above two lines will deploy librealsense2 udev rules, kernel drivers, runtime library and executable demos and tools. Reconnect the Intel RealSense depth camera and run: realsense-viewer
+Developers shall install additional packages:
+sudo apt-get install librealsense2-dev
+sudo apt-get install librealsense2-dbg
+With dev package installed, you can compile an application with librealsense using g++ -std=c++11 filename.cpp -lrealsense2 or an IDE of your choice.
+
+Verify that the kernel is updated :
+modinfo uvcvideo | grep "version:" should include realsense string
+Package Details:
+The packages and their respective content are listed below:
+
+Name   Content   Depends on
+librealsense2-udev-rules   Manages the devices permissions configuration for   –
+realsense-uvcvideo   DKMS package for Depth cameras-specific kernel extensions   librealsense2-udev-rules
+librealsense2   RealSense™ SDK runtime (.so) and configuration files   librealsense2-udev-rules
+librealsense2-utils   Demos and tools available as a part of RealSense™ SDK   librealsense2
+librealsense2-dev   Header files and symbolic link for developers   librealsense2
+librealsense2-dbg   Debug symbols for developers   librealsense2
+
+
+installROSTX2
+https://github.com/jetsonhacks/installROSTX2
+
+
+Intel Realsense D435 on Jetson TX2
+
+출처: <https://mikeisted.wordpress.com/2018/04/09/intel-realsense-d435-on-jetson-tx2/> 
+
+
+
+https://mikeisted.wordpress.com/2018/04/09/intel-realsense-d435-on-jetson-tx2/
+
+트러블 슈팅
+
+@jawad-tech, the librealsense2-dkms package is available strictly for X86 PCs.
+Note that this package is required mainly if you're planning to utilize frame metadata attributes. In that case you have to build the SDK with cmake ../ -DFORCE_LIBUVC=true
+
+출처: <https://github.com/IntelRealSense/librealsense/issues/4512> 
+
+
